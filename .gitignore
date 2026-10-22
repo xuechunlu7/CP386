@@ -1,0 +1,9 @@
+.DS_Store
+*.dSYM
+assignment_average
+process_dispatcher
+output.txt
+output_ref.txt
+*.out
+*.exe
+*.o
