@@ -28,26 +28,31 @@
 //   return 0;
 // }
 int count_row_col(FILE *fp, int *rows, int *cols) {
+  // rewind: move the file pointer to the beginning of the file
   rewind(fp);
+
   *rows = 0;
   *cols = 0;
 
   char buffer[1024];
 
-  // 1. 读取第一行，用 strtok 统计真实的列数（支持空格、制表符、多空格）
+  // 1. read the first line to get the number of columns
+
+  // important to accomadate different type of delimeters: space, tab, and
+  // carriage return
   if (fgets(buffer, sizeof(buffer), fp) != NULL) {
-    char *token = strtok(buffer, " \t\r\n");
-    while (token != NULL) {
+    char *item = strtok(buffer, " \t\r\n");
+    while (item != NULL) {
       (*cols)++;
-      token = strtok(NULL, " \t\r\n");
+      item = strtok(NULL, " \t\r\n");
     }
   }
 
-  // 2. 从头扫描所有行，统计真实的有效数据行数（忽略末尾空行）
+  // 2. read the file from the beginning and count the number of rows
   rewind(fp);
   while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-    char *token = strtok(buffer, " \t\r\n");
-    if (token != NULL) {
+    char *item = strtok(buffer, " \t\r\n");
+    if (item != NULL) {
       (*rows)++;
     }
   }
@@ -81,7 +86,7 @@ void run_ta(int **data, int rows, int col_idx) {
   double avg = sum / rows;
   printf("Assignment %d - Average = %f\n", assignment_num, avg);
 
-  exit(0); // TA 完成任务后安全退出
+  exit(0);
 }
 
 /**
@@ -95,22 +100,23 @@ process, and wait for it to finish
 void run_gta(int **data, int rows, int cols, int chapter) {
   for (int i = 0; i < 2; i++) {
     int col_idx = chapter * 2 + i;
+    // important: check if the col_idx is valid
     if (col_idx >= cols) {
       break;
     }
     pid_t pid = fork();
 
-    if (pid < 0) {
+    if (pid < 0) { // pid < 0 means fork failed
       perror("Failed to fork TA");
       exit(1);
-    } else if (pid == 0) {
-      run_ta(data, rows, col_idx); // 进入 TA
+    } else if (pid == 0) {         // pid == 0 means child process
+      run_ta(data, rows, col_idx); //
     }
 
-    wait(NULL); // 等待 TA 完成
+    wait(NULL); // wait for the child process to finish
   }
 
-  exit(0); // GTA 完成任务后安全退出
+  exit(0); // exit GTA
 }
 
 /**
@@ -159,6 +165,7 @@ int main(int argc, char *argv[]) {
   fclose(fp);
 
   // step 4. create processes
+  // important: do ceiling, so when cols = 3, num_chapters = 2 not 1.
   int num_chapters = (cols + 1) / 2;
 
   for (int c = 0; c < num_chapters; c++) {
